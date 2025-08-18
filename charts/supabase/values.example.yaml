@@ -152,3 +152,8 @@ vector:
 functions:
   image:
     tag: v1.41.2
+  volumeMounts:
+    - name: myfunctions
+      mountPath: /home/deno/functions/custom/
+  volumes:
+  - name: myfunctions
