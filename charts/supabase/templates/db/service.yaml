@@ -7,11 +7,11 @@ metadata:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.db.service.type }}
+  {{- if .Values.db.service.loadBalancerIp }}
+  loadBalancerIP: {{ .Values.db.service.loadBalancerIp }}
+  {{- end }}
   ports:
     - port: {{ .Values.db.service.port }}
-      {{- if .Values.db.service.loadBalancerIp }}
-      loadBalancerIP: {{ .Values.db.service.loadBalancerIp }}
-      {{- end }}
       targetPort: 5432
       protocol: TCP
       name: http
