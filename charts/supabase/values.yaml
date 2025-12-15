@@ -119,6 +119,7 @@ db:
   service:
     type: ClusterIP
     port: 5432
+    loadBalancerIp: ""
   environment:
     POSTGRES_HOST: /var/run/postgresql
     PGPORT: "5432"
