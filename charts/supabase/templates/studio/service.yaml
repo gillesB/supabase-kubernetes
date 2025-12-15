@@ -7,6 +7,9 @@ metadata:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.studio.service.type }}
+  {{- if .Values.studio.service.loadBalancerIp }}
+  loadBalancerIP: {{ .Values.studio.service.loadBalancerIp }}
+  {{- end }}
   ports:
     - port: {{ .Values.studio.service.port }}
       targetPort: 3000

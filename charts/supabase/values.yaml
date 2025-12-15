@@ -205,6 +205,7 @@ studio:
   service:
     type: ClusterIP
     port: 3000
+    loadBalancerIp: ""
   environment:
     STUDIO_DEFAULT_ORGANIZATION: Default Organization
     STUDIO_DEFAULT_PROJECT: Default Project
