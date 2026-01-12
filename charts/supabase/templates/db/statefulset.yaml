@@ -1,11 +1,12 @@
 {{- if .Values.db.enabled -}}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "supabase.db.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
+  serviceName: {{ include "supabase.db.fullname" . }}-headless
   {{- if not .Values.db.autoscaling.enabled }}
   replicas: {{ .Values.db.replicaCount }}
   {{- end }}
@@ -122,6 +123,9 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
+            - name: postgresql
+              containerPort: 5432
+              protocol: TCP
             - name: http
               containerPort: 9999
               protocol: TCP
@@ -133,7 +137,7 @@ spec:
             {{- end }}
             {{- if .Values.db.persistence.enabled }}
             - mountPath: /var/lib/postgresql/data
-              name: postgres-volume
+              name: postgres-data
               subPath: postgres-data
             {{- end }}
           {{- with .Values.db.resources }}
@@ -153,11 +157,6 @@ spec:
         {{- with .Values.db.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
-        {{- if .Values.db.persistence.enabled }}
-        - name: postgres-volume
-          persistentVolumeClaim:
-            claimName: {{ include "supabase.db.fullname" . }}-pvc
-        {{- end }}
       {{- with .Values.db.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -170,4 +169,26 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+  {{- if .Values.db.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+        labels:
+          recurring-job-group.longhorn.io/minute: enabled
+        {{- with .Values.db.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        {{- if .Values.db.persistence.storageClassName }}
+        storageClassName: {{ .Values.db.persistence.storageClassName }}
+        {{- end }}
+        accessModes:
+        {{- range .Values.db.persistence.accessModes }}
+          - {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.db.persistence.size | quote }}
+  {{- end }}
 {{- end }}
