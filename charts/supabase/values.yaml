@@ -88,6 +88,19 @@ secret:
 db:
   # Enable database provisioning
   enabled: true
+
+  # CloudNativePG Integration
+  # Enable this to use CloudNativePG-managed PostgreSQL cluster instead of StatefulSet
+  # Configure the cluster settings in the root-level 'cloudnative-pg-cluster' section below
+  cloudnativepg:
+    # Enable CloudNativePG-managed PostgreSQL cluster
+    enabled: true
+
+    # Override the read-write service name
+    # Default: {release-name}-cloudnative-pg-cluster-rw
+    serviceNameOverride: ""
+
+  # Traditional StatefulSet configuration (used when cloudnativepg.enabled=false)
   image:
     repository: supabase/postgres
     pullPolicy: IfNotPresent
@@ -1152,3 +1165,86 @@ minio:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+
+# CloudNativePG Cluster Subchart Configuration
+# This section configures the cluster subchart when db.cloudnativepg.enabled=true
+# Values here are passed to the cloudnative-pg-cluster subchart
+cloudnative-pg-cluster:
+  cluster:
+    # Number of PostgreSQL instances (1 for dev, 3+ for HA)
+    instances: 3
+
+    # PostgreSQL 17 image
+    # Use supabase/postgres image for full Supabase compatibility
+    imageName: "supabase/postgres:17.4.1.074"
+
+    # User IDs for supabase/postgres image (postgres user is UID 101, GID 102)
+    postgresUID: 101
+    postgresGID: 102
+
+    # Storage configuration
+    storage:
+      size: 5Gi
+      storageClass: ""
+
+    # Enable superuser access
+    enableSuperuserAccess: true
+
+    # PostgreSQL parameters
+    postgresql:
+      parameters:
+        max_connections: "200"
+        shared_buffers: "256MB"
+
+    # Bootstrap configuration with Supabase roles and schemas
+    # bootstrap:
+    #   initdb:
+    #     database: "postgres"
+    #     owner: "postgres"
+    #     postInitSQL:
+    #       # Create schemas
+    #       - "CREATE SCHEMA IF NOT EXISTS _analytics;"
+    #       - "CREATE SCHEMA IF NOT EXISTS _realtime;"
+    #       - "CREATE SCHEMA IF NOT EXISTS supabase_functions;"
+    #       - "CREATE SCHEMA IF NOT EXISTS extensions;"
+
+    #       # Grant schema permissions
+    #       - "GRANT USAGE ON SCHEMA extensions TO postgres;"
+
+    #       # Create NOLOGIN roles
+    #       - "CREATE ROLE anon NOLOGIN;"
+    #       - "CREATE ROLE authenticated NOLOGIN;"
+    #       - "CREATE ROLE service_role NOLOGIN BYPASSRLS;"
+
+    #       # Create LOGIN roles with placeholder passwords
+    #       # IMPORTANT: Override these passwords in your project values!
+    #       - "CREATE ROLE authenticator LOGIN PASSWORD 'replace-me-in-project-values';"
+    #       - "CREATE ROLE pgbouncer LOGIN PASSWORD 'replace-me-in-project-values';"
+    #       - "CREATE ROLE supabase_admin LOGIN CREATEROLE CREATEDB REPLICATION PASSWORD 'replace-me-in-project-values';"
+    #       - "CREATE ROLE supabase_auth_admin LOGIN PASSWORD 'replace-me-in-project-values';"
+    #       - "CREATE ROLE supabase_storage_admin LOGIN PASSWORD 'replace-me-in-project-values';"
+    #       - "CREATE ROLE dashboard_user LOGIN PASSWORD 'replace-me-in-project-values';"
+
+    #       # Grant roles to authenticator (for JWT role switching)
+    #       - "GRANT anon TO authenticator;"
+    #       - "GRANT authenticated TO authenticator;"
+    #       - "GRANT service_role TO authenticator;"
+    #       - "GRANT supabase_admin TO postgres;"
+
+    #       # Set postgres superuser password (override in project values!)
+    #       - "ALTER USER postgres WITH PASSWORD 'replace-me-in-project-values';"
+
+    #       # Grant permissions on schemas
+    #       - "GRANT ALL ON SCHEMA public TO postgres, anon, authenticated, service_role;"
+    #       - "GRANT ALL ON SCHEMA _analytics TO postgres, supabase_admin;"
+    #       - "GRANT ALL ON SCHEMA _realtime TO postgres, supabase_admin;"
+    #       - "GRANT USAGE ON SCHEMA supabase_functions TO postgres, anon, authenticated, service_role;"
+
+    #       # Set default privileges for supabase_functions schema
+    #       - "ALTER DEFAULT PRIVILEGES IN SCHEMA supabase_functions GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;"
+    #       - "ALTER DEFAULT PRIVILEGES IN SCHEMA supabase_functions GRANT ALL ON FUNCTIONS TO postgres, anon, authenticated, service_role;"
+    #       - "ALTER DEFAULT PRIVILEGES IN SCHEMA supabase_functions GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;"
+
+    #       # Create migrations table for supabase_functions
+    #       - "CREATE TABLE IF NOT EXISTS supabase_functions.migrations (version text PRIMARY KEY, inserted_at timestamptz NOT NULL DEFAULT NOW());"
+    #       - "INSERT INTO supabase_functions.migrations (version) VALUES ('initial') ON CONFLICT DO NOTHING;"

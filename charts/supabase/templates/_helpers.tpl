@@ -60,3 +60,24 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Get the database host based on deployment mode
+Returns the appropriate database service name for:
+- CloudNativePG mode: {release-name}-cloudnative-pg-cluster-rw
+- StatefulSet mode: {release-name}-supabase-db
+- External mode: User must specify DB_HOST in service environment
+*/}}
+{{- define "supabase.db.host" -}}
+{{- if and .Values.db.enabled .Values.db.cloudnativepg.enabled -}}
+  {{- if .Values.db.cloudnativepg.serviceNameOverride -}}
+    {{- .Values.db.cloudnativepg.serviceNameOverride -}}
+  {{- else -}}
+    {{- printf "%s-cloudnative-pg-cluster-rw" .Release.Name -}}
+  {{- end -}}
+{{- else if .Values.db.enabled -}}
+  {{- include "supabase.db.fullname" . -}}
+{{- else -}}
+  {{- required "DB_HOST must be specified in service environment when db.enabled=false" .Values.auth.environment.DB_HOST -}}
+{{- end -}}
+{{- end }}
