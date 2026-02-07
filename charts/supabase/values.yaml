@@ -89,16 +89,8 @@ db:
   # Enable database provisioning
   enabled: true
 
-  # CloudNativePG Integration
-  # Enable this to use CloudNativePG-managed PostgreSQL cluster instead of StatefulSet
-  # Configure the cluster settings in the root-level 'cloudnative-pg-cluster' section below
   cloudnativepg:
-    # Enable CloudNativePG-managed PostgreSQL cluster
-    enabled: true
-
-    # Override the read-write service name
-    # Default: {release-name}-cloudnative-pg-cluster-rw
-    serviceNameOverride: ""
+    enabled: false
 
   # Traditional StatefulSet configuration (used when cloudnativepg.enabled=false)
   image:
