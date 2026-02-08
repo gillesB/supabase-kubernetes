@@ -97,10 +97,23 @@ spec:
         # - "CREATE EXTENSION IF NOT EXISTS pg_net SCHEMA extensions;"
 
       # Phase 2: Schema creation (runs on application database)
+      # secretRefs execute first (JWT config + _analytics/_realtime schemas with Helm variables)
+      # configMapRefs execute second (static SQL scripts in order)
       postInitApplicationSQLRefs:
         secretRefs:
           - name: {{ include "supabase.initdb.secret" . }}
-            key: schema-setup.sql
+            key: jwt-config.sql
+        configMapRefs:
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 00-initial-schema.sql
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 01-auth-schema.sql
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 02-storage-schema.sql
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 03-post-setup.sql
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 04-webhooks.sql
 
   # Storage Configuration
   storage:

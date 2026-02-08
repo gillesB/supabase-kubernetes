@@ -193,17 +193,6 @@ db:
     accessModes:
       - ReadWriteOnce
 
-  # Init Job Configuration (for complex DB setup)
-  initJob:
-    image: "postgres:15-alpine"
-    resources:
-      requests:
-        memory: "128Mi"
-        cpu: "100m"
-      limits:
-        memory: "256Mi"
-        cpu: "500m"
-
   # Wait Hook Configuration (optional - services have their own init containers)
   waitHook:
     enabled: false  # Set to true to create a Job that waits for DB before deployment

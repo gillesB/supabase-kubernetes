@@ -6,6 +6,14 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 data:
-  webhooks-setup.sql: |
-{{ .Files.Get "files/98-webhooks.sql" | nindent 4 }}
+  00-initial-schema.sql: |
+{{ .Files.Get "files/00-initial-schema.sql" | indent 4 }}
+  01-auth-schema.sql: |
+{{ .Files.Get "files/01-auth-schema.sql" | indent 4 }}
+  02-storage-schema.sql: |
+{{ .Files.Get "files/02-storage-schema.sql" | indent 4 }}
+  03-post-setup.sql: |
+{{ .Files.Get "files/03-post-setup.sql" | indent 4 }}
+  04-webhooks.sql: |
+{{ .Files.Get "files/04-webhooks.sql" | indent 4 }}
 {{- end }}

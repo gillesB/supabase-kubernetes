@@ -5,6 +5,10 @@ metadata:
   name: {{ .Release.Name }}-wait-for-db
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
   ttlSecondsAfterFinished: 100
   backoffLimit: 30
