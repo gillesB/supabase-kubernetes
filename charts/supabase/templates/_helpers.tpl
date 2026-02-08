@@ -62,22 +62,67 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
-Get the database host based on deployment mode
-Returns the appropriate database service name for:
-- CloudNativePG mode: {release-name}-cloudnative-pg-cluster-rw
-- StatefulSet mode: {release-name}-supabase-db
-- External mode: User must specify DB_HOST in service environment
+Get the database host for CNPG cluster
+Returns the CNPG read-write service name: {release-name}-db-rw
 */}}
 {{- define "supabase.db.host" -}}
-{{- if and .Values.db.enabled .Values.db.cloudnativepg.enabled -}}
-  {{- if .Values.db.cloudnativepg.serviceNameOverride -}}
-    {{- .Values.db.cloudnativepg.serviceNameOverride -}}
+{{- if .Values.db.enabled -}}
+  {{- if .Values.db.cluster.nameOverride -}}
+    {{- printf "%s-rw" .Values.db.cluster.nameOverride -}}
   {{- else -}}
-    {{- printf "%s-cloudnative-pg-cluster-rw" .Release.Name -}}
+    {{- printf "%s-db-rw" .Release.Name -}}
   {{- end -}}
-{{- else if .Values.db.enabled -}}
-  {{- include "supabase.db.fullname" . -}}
 {{- else -}}
   {{- required "DB_HOST must be specified in service environment when db.enabled=false" .Values.auth.environment.DB_HOST -}}
 {{- end -}}
+{{- end }}
+
+{{/*
+CNPG cluster name
+*/}}
+{{- define "supabase.db.clusterName" -}}
+{{- if .Values.db.cluster.nameOverride }}
+{{- .Values.db.cluster.nameOverride }}
+{{- else }}
+{{- printf "%s-db" .Release.Name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Database component name (for log filtering)
+*/}}
+{{- define "supabase.db.name" -}}
+{{- printf "%s-db" .Chart.Name }}
+{{- end }}
+
+{{/*
+CNPG initdb SQL secret name
+*/}}
+{{- define "supabase.initdb.secret" -}}
+{{- printf "%s-initdb-sql" .Release.Name }}
+{{- end }}
+
+{{/*
+CNPG initdb scripts ConfigMap name
+*/}}
+{{- define "supabase.initdb.configmap" -}}
+{{- printf "%s-initdb-scripts" .Release.Name }}
+{{- end }}
+
+{{/*
+Supabase roles secret name
+*/}}
+{{- define "supabase.secret.roles" -}}
+{{- printf "%s-roles" .Release.Name }}
+{{- end }}
+
+{{/*
+CNPG backup secret name
+*/}}
+{{- define "supabase.cnpg.backupSecret" -}}
+{{- if .Values.db.backup.s3.existingSecret }}
+{{- .Values.db.backup.s3.existingSecret }}
+{{- else }}
+{{- printf "%s-backup-s3" .Release.Name }}
+{{- end }}
 {{- end }}

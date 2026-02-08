@@ -20,11 +20,7 @@ spec:
               echo "Database is ready"
           env:
             - name: DB_HOST
-              {{- if .Values.db.enabled }}
-              value: {{ include "supabase.db.fullname" . | quote }}
-              {{- else }}
-              value: {{ .Values.auth.environment.DB_HOST | quote }}
-              {{- end }}
+              value: {{ include "supabase.db.host" . | quote }}
             - name: DB_USER
               valueFrom:
                 secretKeyRef:

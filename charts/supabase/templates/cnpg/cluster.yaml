@@ -1,0 +1,182 @@
+{{- if .Values.db.enabled -}}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "supabase.db.clusterName" . }}
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  instances: {{ .Values.db.cluster.instances | default 3 }}
+
+  imageName: {{ .Values.db.image.repository }}:{{ .Values.db.image.tag | default "latest" }}
+  {{- if .Values.db.imagePullSecrets }}
+  imagePullSecrets:
+    {{- toYaml .Values.db.imagePullSecrets | nindent 4 }}
+  {{- end }}
+
+  postgresUID: {{ .Values.db.cluster.postgres.uid | default 101 }}
+  postgresGID: {{ .Values.db.cluster.postgres.gid | default 102 }}
+
+  # Managed Roles - CNPG native password management
+  managed:
+    roles:
+      # - name: postgres
+      #   ensure: present
+      #   login: true
+      #   superuser: true
+      #   passwordSecret:
+      #     name: {{ include "supabase.secret.db" . }}
+      - name: authenticator
+        ensure: present
+        login: true
+        inherit: false
+        passwordSecret:
+          name: {{ include "supabase.secret.roles" . }}
+          key: authenticator
+      - name: pgbouncer
+        ensure: present
+        login: true
+        inherit: false
+        passwordSecret:
+          name: {{ include "supabase.secret.roles" . }}
+          key: pgbouncer
+      - name: supabase_auth_admin
+        ensure: present
+        login: true
+        inherit: false
+        createrole: true
+        passwordSecret:
+          name: {{ include "supabase.secret.roles" . }}
+          key: supabase_auth_admin
+      - name: supabase_functions_admin
+        ensure: present
+        login: true
+        inherit: false
+        createrole: true
+        passwordSecret:
+          name: {{ include "supabase.secret.roles" . }}
+          key: supabase_functions_admin
+      - name: supabase_storage_admin
+        ensure: present
+        login: true
+        inherit: false
+        createrole: true
+        passwordSecret:
+          name: {{ include "supabase.secret.roles" . }}
+          key: supabase_storage_admin
+
+  # PostgreSQL Configuration
+  postgresql:
+    parameters:
+      max_connections: {{ .Values.db.cluster.maxConnections | default "200" | quote }}
+      shared_buffers: {{ .Values.db.cluster.sharedBuffers | default "256MB" | quote }}
+      effective_cache_size: {{ .Values.db.cluster.effectiveCacheSize | default "1GB" | quote }}
+      maintenance_work_mem: {{ .Values.db.cluster.maintenanceWorkMem | default "64MB" | quote }}
+      wal_buffers: {{ .Values.db.cluster.walBuffers | default "16MB" | quote }}
+      {{- if .Values.db.cluster.parameters }}
+      {{- toYaml .Values.db.cluster.parameters | nindent 6 }}
+      {{- end }}
+    # {{- if .Values.db.cluster.postgres }}
+    # # Pod Security Context for supabase/postgres image (uses UID 101, GID 102)
+    # podSecurityContext:
+    #   runAsUser: {{ .Values.db.cluster.postgres.uid | default 101 }}
+    #   runAsGroup: {{ .Values.db.cluster.postgres.gid | default 102 }}
+    #   fsGroup: {{ .Values.db.cluster.postgres.gid | default 102 }}
+    # {{- end }}
+
+  # Bootstrap - Three-phase initialization
+  bootstrap:
+    initdb:
+      database: {{ .Values.secret.db.database | default "postgres" }}
+      owner: {{ .Values.secret.db.username | default "postgres" }}
+      secret:
+        name: {{ include "supabase.secret.db" . }}
+
+      # Phase 1: Extensions (runs on template1 database)
+      # postInitTemplateSQL:
+        # - "CREATE EXTENSION IF NOT EXISTS pg_net SCHEMA extensions;"
+
+      # Phase 2: Schema creation (runs on application database)
+      postInitApplicationSQLRefs:
+        secretRefs:
+          - name: {{ include "supabase.initdb.secret" . }}
+            key: schema-setup.sql
+
+  # Storage Configuration
+  storage:
+    size: {{ .Values.db.persistence.size | default "8Gi" }}
+    {{- if .Values.db.persistence.storageClassName }}
+    storageClass: {{ .Values.db.persistence.storageClassName }}
+    {{- end }}
+
+  # Primary Update Strategy
+  primaryUpdateStrategy: {{ .Values.db.cluster.primaryUpdateStrategy | default "unsupervised" }}
+
+  {{- if .Values.db.backup.enabled }}
+  # Backup Configuration
+  backup:
+    barmanObjectStore:
+      destinationPath: "s3://{{ .Values.db.backup.s3.bucket }}{{ .Values.db.backup.s3.path | default "" }}"
+      endpointURL: "https://{{ .Values.db.backup.s3.endpoint }}"
+      s3Credentials:
+        accessKeyId:
+          name: {{ include "supabase.cnpg.backupSecret" . }}
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: {{ include "supabase.cnpg.backupSecret" . }}
+          key: ACCESS_SECRET_KEY
+      {{- if .Values.db.backup.s3.region }}
+      serverName: {{ include "supabase.db.clusterName" . }}
+      {{- end }}
+      wal:
+        compression: {{ .Values.db.backup.wal.compression | default "gzip" }}
+        {{- if .Values.db.backup.wal.encryption }}
+        encryption: {{ .Values.db.backup.wal.encryption }}
+        {{- end }}
+        maxParallel: {{ .Values.db.backup.wal.maxParallel | default 2 }}
+    retentionPolicy: {{ .Values.db.backup.retentionPolicy | default "30d" }}
+  {{- end }}
+
+  # Monitoring
+  monitoring:
+    enablePodMonitor: {{ .Values.db.monitoring.enabled | default true }}
+    {{- if .Values.db.monitoring.customQueriesConfigMap }}
+    customQueriesConfigMap:
+      - name: {{ .Values.db.monitoring.customQueriesConfigMap }}
+        key: queries
+    {{- end }}
+
+  # Resources
+  resources:
+    {{- toYaml .Values.db.cluster.resources | nindent 4 }}
+
+  {{- if .Values.db.nodeSelector }}
+  # Node Selector
+  nodeSelector:
+    {{- toYaml .Values.db.nodeSelector | nindent 4 }}
+  {{- end }}
+
+  {{- if or .Values.db.cluster.enablePodAntiAffinity .Values.db.affinity }}
+  # Affinity
+  affinity:
+    {{- if .Values.db.cluster.enablePodAntiAffinity }}
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                cnpg.io/cluster: {{ include "supabase.db.clusterName" . }}
+            topologyKey: kubernetes.io/hostname
+    {{- end }}
+    {{- if .Values.db.affinity }}
+    {{- toYaml .Values.db.affinity | nindent 4 }}
+    {{- end }}
+  {{- end }}
+
+  {{- if .Values.db.tolerations }}
+  # Tolerations
+  tolerations:
+    {{- toYaml .Values.db.tolerations | nindent 4 }}
+  {{- end }}
+{{- end }}

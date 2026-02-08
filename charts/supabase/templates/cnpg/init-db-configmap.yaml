@@ -1,0 +1,11 @@
+{{- if .Values.db.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "supabase.initdb.configmap" . }}
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+data:
+  webhooks-setup.sql: |
+{{ .Files.Get "files/98-webhooks.sql" | nindent 4 }}
+{{- end }}

@@ -1,0 +1,48 @@
+{{- if and .Values.db.enabled .Values.db.pooler.enabled -}}
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: {{ .Release.Name }}-pooler
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  cluster:
+    name: {{ include "supabase.db.clusterName" . }}
+
+  instances: {{ .Values.db.pooler.instances | default 3 }}
+  type: {{ .Values.db.pooler.type | default "rw" }}
+
+  pgbouncer:
+    poolMode: {{ .Values.db.pooler.poolMode | default "transaction" }}
+    parameters:
+      max_client_conn: {{ .Values.db.pooler.maxClientConn | default "1000" | quote }}
+      default_pool_size: {{ .Values.db.pooler.defaultPoolSize | default "25" | quote }}
+      min_pool_size: {{ .Values.db.pooler.minPoolSize | default "5" | quote }}
+      reserve_pool_size: {{ .Values.db.pooler.reservePoolSize | default "5" | quote }}
+      max_db_connections: {{ .Values.db.pooler.maxDbConnections | default "100" | quote }}
+
+  template:
+    metadata:
+      labels:
+        {{- include "supabase.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: pgbouncer
+          resources:
+            {{- toYaml .Values.db.pooler.resources | nindent 12 }}
+
+      {{- with .Values.db.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.db.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.db.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

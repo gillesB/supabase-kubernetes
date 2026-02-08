@@ -1,0 +1,83 @@
+{{- if and .Values.db.enabled .Values.db.waitHook.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-wait-for-db
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  ttlSecondsAfterFinished: 100
+  backoffLimit: 30
+  template:
+    metadata:
+      labels:
+        {{- include "supabase.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: wait-for-db
+          image: {{ .Values.db.waitHook.image | default "postgres:15-alpine" }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PGHOST
+              value: {{ include "supabase.db.host" . }}
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db" . }}
+                  key: {{ .Values.secret.db.secretRefKey.username | default "username" }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db" . }}
+                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
+            - name: PGDATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db" . }}
+                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
+            - name: TIMEOUT
+              value: {{ .Values.db.waitHook.timeout | default 300 | quote }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "Waiting for CNPG cluster to be ready..."
+              max_attempts=$(( ${TIMEOUT} / 5 ))
+              attempt=0
+
+              while [ $attempt -lt $max_attempts ]; do
+                if pg_isready -h $PGHOST -p $PGPORT -U $PGUSER; then
+                  echo "Database is accepting connections, verifying cluster health..."
+
+                  # Additional check: try to connect and run a simple query
+                  if psql -h $PGHOST -p $PGPORT -U $PGUSER -d $PGDATABASE -c "SELECT 1" >/dev/null 2>&1; then
+                    echo "Successfully connected to database and executed query."
+                    echo "CNPG cluster is ready!"
+                    exit 0
+                  else
+                    echo "Database is listening but not ready for queries yet..."
+                  fi
+                else
+                  echo "Attempt $((attempt+1))/$max_attempts: Database not ready..."
+                fi
+
+                attempt=$((attempt+1))
+                sleep 5
+              done
+
+              echo "ERROR: Database did not become ready within the timeout period (${TIMEOUT}s)"
+              exit 1
+      {{- with .Values.db.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.db.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

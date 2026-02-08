@@ -86,95 +86,162 @@ secret:
 # You can spin up any other Postgres database container if required.
 # If so, make sure to adjust DB_HOST accordingly to point to the right database service.
 db:
-  # Enable database provisioning
+  # Enable database provisioning (CNPG mode only)
   enabled: true
 
-  cloudnativepg:
-    enabled: false
-
-  # Traditional StatefulSet configuration (used when cloudnativepg.enabled=false)
+  # PostgreSQL Image Configuration
   image:
     repository: supabase/postgres
     pullPolicy: IfNotPresent
     tag: "latest"
+
   imagePullSecrets: []
-  replicaCount: 1
-  nameOverride: ""
-  fullnameOverride: ""
-  livenessProbe: {}
-  readinessProbe: {}
-  serviceAccount:
-    # Specifies whether a service account should be created
-    create: true
-    # Annotations to add to the service account
-    annotations: {}
-    # The name of the service account to use.
-    # If not set and create is true, a name is generated using the fullname template
-    name: ""
-  podAnnotations: {}
-  podSecurityContext: {}
-    # fsGroup: 2000
-  securityContext: {}
-    # capabilities:
-    #   drop:
-    #   - ALL
-    # readOnlyRootFilesystem: true
-    # runAsNonRoot: true
-    # runAsUser: 1000
-  service:
-    type: ClusterIP
-    port: 5432
-    loadBalancerIp: ""
+
+  # CNPG Cluster Configuration
+  cluster:
+    # Cluster name override (default: {release-name}-db)
+    nameOverride: ""
+
+    # Number of PostgreSQL instances (1 for dev, 3+ for HA)
+    instances: 1
+
+    # PostgreSQL User/Group IDs (supabase/postgres uses 101/102)
+    # Standard postgres images use 26/26, but supabase/postgres is different
+    postgres:
+      uid: 101
+      gid: 102
+
+    # PostgreSQL configuration parameters
+    maxConnections: "200"
+    sharedBuffers: "256MB"
+    effectiveCacheSize: "1GB"
+    maintenanceWorkMem: "64MB"
+    walBuffers: "16MB"
+
+    # Additional PostgreSQL parameters
+    parameters: {}
+      # work_mem: "4MB"
+      # max_wal_size: "1GB"
+
+    # Resource requests and limits
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "2000m"
+
+    # Primary update strategy (unsupervised or supervised)
+    primaryUpdateStrategy: unsupervised
+
+    # Enable pod anti-affinity for HA (spread replicas across nodes)
+    enablePodAntiAffinity: true
+
+  # Backup Configuration
+  backup:
+    enabled: false
+    s3:
+      existingSecret: ""  # Reference external secret
+      accessKeyId: ""
+      secretAccessKey: ""
+      endpoint: "s3.amazonaws.com"
+      bucket: "my-supabase-backups"
+      region: "us-east-1"
+      path: "/supabase/postgres"
+    schedule: "0 2 * * *"  # Daily at 2 AM UTC
+    retentionPolicy: "30d"
+    wal:
+      compression: "gzip"
+      encryption: ""  # AES256 or empty
+      maxParallel: 2
+    recovery:  # For Point-in-Time Recovery
+      enabled: false
+      backupName: "latest"
+      recoveryTarget: ""  # RFC3339 timestamp
+
+  # Connection Pooler (PgBouncer)
+  pooler:
+    enabled: false
+    instances: 3
+    type: "rw"  # rw (read-write) or ro (read-only)
+    poolMode: "transaction"  # session, transaction, or statement
+    maxClientConn: "1000"
+    defaultPoolSize: "25"
+    minPoolSize: "5"
+    reservePoolSize: "5"
+    maxDbConnections: "100"
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "500m"
+
+  # Monitoring Configuration
+  monitoring:
+    enabled: true
+    interval: "30s"
+    customQueriesConfigMap: ""
+
+  # Storage Configuration
+  persistence:
+    enabled: true
+    storageClassName: ""
+    size: 8Gi
+    accessModes:
+      - ReadWriteOnce
+
+  # Init Job Configuration (for complex DB setup)
+  initJob:
+    image: "postgres:15-alpine"
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "500m"
+
+  # Wait Hook Configuration (optional - services have their own init containers)
+  waitHook:
+    enabled: false  # Set to true to create a Job that waits for DB before deployment
+    image: "postgres:15-alpine"
+    timeout: 300  # seconds
+
+  # Migration Job Configuration (user-provided migrations)
+  migrations:
+    enabled: false
+    image: ""  # User must provide
+    imagePullPolicy: "IfNotPresent"
+    imagePullSecrets: []
+    command: []
+    args: []
+    extraEnv: []
+    databaseUrlSecret: ""
+    databaseUrlSecretKey: "DATABASE_URL"
+    volumeMounts: []
+    volumes: []
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+  # Database Environment Variables
   environment:
     POSTGRES_HOST: /var/run/postgresql
     PGPORT: "5432"
     POSTGRES_PORT: "5432"
     JWT_EXP: 3600
-    # POSTGRES_HOST_AUTH_METHOD: md5
-    # Enable SSL for postgres by specifying paths for mounted certificate key pair
-    # POSTGRES_SSL_CERT: /path/to/ssl/server.crt
-    # POSTGRES_SSL_KEY: /path/to/ssl/server.key
-  # volumeMounts:
-  #   - name: volume_name
-  #     mountPath: /path/to/my/secret
-  # volumes:
-  #   - name: volume_name
-  #     secret:
-  #       defaultMode: 733
-  #       secretName: my_secret
-  #       items:
-  #       - key: my_secret.txt
-  #         path: name_of_file_in_container.txt
-  resources: {}
-    # We usually recommend not to specify default resources and to leave this as a conscious
-    # choice for the user. This also increases chances charts run on environments with little
-    # resources, such as Minikube. If you do want to specify resources, uncomment the following
-    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-    # limits:
-    #   cpu: 100m
-    #   memory: 128Mi
-    # requests:
-    #   cpu: 100m
-    #   memory: 128Mi
-  persistence:
-    enabled: true
-    storageClassName: ""
-    annotations: {}
-    size: 8Gi
-    accessModes:
-      - ReadWriteOnce
-    class: ""
-  autoscaling:
-    enabled: true
-    minReplicas: 1
-    maxReplicas: 100
-    targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
+
+  # Node scheduling
   nodeSelector: {}
   tolerations: []
   affinity: {}
-  # Additional migration scripts can be defined here
-  config: {}
 
 # Studio Application
 studio:

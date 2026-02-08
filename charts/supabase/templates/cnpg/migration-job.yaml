@@ -1,0 +1,85 @@
+{{- if and .Values.db.enabled .Values.db.migrations.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-migrations
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "supabase.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      {{- if .Values.db.migrations.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.db.migrations.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: migrations
+          image: {{ .Values.db.migrations.image }}
+          imagePullPolicy: {{ .Values.db.migrations.imagePullPolicy | default "IfNotPresent" }}
+          env:
+            - name: PGHOST
+              value: {{ include "supabase.db.host" . }}
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db" . }}
+                  key: {{ .Values.secret.db.secretRefKey.username | default "username" }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db" . }}
+                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
+            - name: PGDATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db" . }}
+                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
+            {{- if .Values.db.migrations.databaseUrlSecret }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.migrations.databaseUrlSecret }}
+                  key: {{ .Values.db.migrations.databaseUrlSecretKey | default "DATABASE_URL" }}
+            {{- end }}
+            {{- with .Values.db.migrations.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if .Values.db.migrations.command }}
+          command:
+            {{- toYaml .Values.db.migrations.command | nindent 12 }}
+          {{- end }}
+          {{- if .Values.db.migrations.args }}
+          args:
+            {{- toYaml .Values.db.migrations.args | nindent 12 }}
+          {{- end }}
+          {{- if .Values.db.migrations.volumeMounts }}
+          volumeMounts:
+            {{- toYaml .Values.db.migrations.volumeMounts | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.db.migrations.resources | nindent 12 }}
+      {{- if .Values.db.migrations.volumes }}
+      volumes:
+        {{- toYaml .Values.db.migrations.volumes | nindent 8 }}
+      {{- end }}
+      {{- with .Values.db.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.db.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
