@@ -18,7 +18,7 @@ secret:
   db:
     username: supabase_admin
     password: example123456
-    database: postgres
+    database: supabase
   analytics:
     apiKey: your-super-secret-and-long-logflare-key
 
@@ -32,6 +32,9 @@ db:
         - postgres
   image:
     repository: supabase/postgres
+
+  imagePullSecrets:
+    - name: dockerconfigjson-github-com
   
   # replicaCount: 3
   # autoscaling:
@@ -54,7 +57,7 @@ analytics:
   enabled: true
 
 realtime:
-  enabled: false
+  enabled: true
 
 functions:
   enabled: false
@@ -92,6 +95,7 @@ studio:
     loadBalancerIp: 172.20.0.201
 
 kong:
+  enabled: true
   image:
     repository: kong
   ingress:

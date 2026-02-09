@@ -17,53 +17,9 @@ spec:
   postgresUID: {{ .Values.db.cluster.postgres.uid | default 101 }}
   postgresGID: {{ .Values.db.cluster.postgres.gid | default 102 }}
 
-  # Managed Roles - CNPG native password management
-  managed:
-    roles:
-      # - name: postgres
-      #   ensure: present
-      #   login: true
-      #   superuser: true
-      #   passwordSecret:
-      #     name: {{ include "supabase.secret.db" . }}
-      - name: authenticator
-        ensure: present
-        login: true
-        inherit: false
-        passwordSecret:
-          name: {{ include "supabase.secret.roles" . }}
-          key: authenticator
-      - name: pgbouncer
-        ensure: present
-        login: true
-        inherit: false
-        passwordSecret:
-          name: {{ include "supabase.secret.roles" . }}
-          key: pgbouncer
-      - name: supabase_auth_admin
-        ensure: present
-        login: true
-        inherit: false
-        createrole: true
-        passwordSecret:
-          name: {{ include "supabase.secret.roles" . }}
-          key: supabase_auth_admin
-      - name: supabase_functions_admin
-        ensure: present
-        login: true
-        inherit: false
-        createrole: true
-        passwordSecret:
-          name: {{ include "supabase.secret.roles" . }}
-          key: supabase_functions_admin
-      - name: supabase_storage_admin
-        ensure: present
-        login: true
-        inherit: false
-        createrole: true
-        passwordSecret:
-          name: {{ include "supabase.secret.roles" . }}
-          key: supabase_storage_admin
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: supabase-db-postgres
 
   # PostgreSQL Configuration
   postgresql:
@@ -76,44 +32,38 @@ spec:
       {{- if .Values.db.cluster.parameters }}
       {{- toYaml .Values.db.cluster.parameters | nindent 6 }}
       {{- end }}
-    # {{- if .Values.db.cluster.postgres }}
-    # # Pod Security Context for supabase/postgres image (uses UID 101, GID 102)
-    # podSecurityContext:
-    #   runAsUser: {{ .Values.db.cluster.postgres.uid | default 101 }}
-    #   runAsGroup: {{ .Values.db.cluster.postgres.gid | default 102 }}
-    #   fsGroup: {{ .Values.db.cluster.postgres.gid | default 102 }}
-    # {{- end }}
+    shared_preload_libraries:
+      - pg_stat_statements
+      - pg_net
+      {{- if .Values.db.cluster.sharedPreloadLibraries }}
+      {{- toYaml .Values.db.cluster.sharedPreloadLibraries | nindent 6 }}
+      {{- end }}
 
   # Bootstrap - Three-phase initialization
   bootstrap:
     initdb:
-      database: {{ .Values.secret.db.database | default "postgres" }}
+      database: supabase
       owner: supabase_admin
       secret:
-        name: {{ include "supabase.secret.db" . }}
+        name: supabase-db-supabase-admin
 
-      # Phase 1: Extensions (runs on template1 database)
-      # postInitTemplateSQL:
-        # - "CREATE EXTENSION IF NOT EXISTS pg_net SCHEMA extensions;"
-
-      # Phase 2: Schema creation (runs on application database)
-      # secretRefs execute first (JWT config + _analytics/_realtime schemas with Helm variables)
-      # configMapRefs execute second (static SQL scripts in order)
       postInitApplicationSQLRefs:
         secretRefs:
           - name: {{ include "supabase.initdb.secret" . }}
             key: jwt-config.sql
         configMapRefs:
           - name: {{ include "supabase.initdb.configmap" . }}
-            key: 00-initial-schema.sql
+            key: 00-custom.sql
           - name: {{ include "supabase.initdb.configmap" . }}
-            key: 01-auth-schema.sql
+            key: 10-initial-schema.sql
           - name: {{ include "supabase.initdb.configmap" . }}
-            key: 02-storage-schema.sql
+            key: 11-auth-schema.sql
           - name: {{ include "supabase.initdb.configmap" . }}
-            key: 03-post-setup.sql
+            key: 12-storage-schema.sql
           - name: {{ include "supabase.initdb.configmap" . }}
-            key: 04-webhooks.sql
+            key: 13-post-setup.sql
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 14-webhooks.sql
 
   # Storage Configuration
   storage:
@@ -123,7 +73,7 @@ spec:
     {{- end }}
 
   # Primary Update Strategy
-  primaryUpdateStrategy: {{ .Values.db.cluster.primaryUpdateStrategy | default "unsupervised" }}
+  # primaryUpdateStrategy: {{ .Values.db.cluster.primaryUpdateStrategy | default "unsupervised" }}
 
   {{- if .Values.db.backup.enabled }}
   # Backup Configuration
@@ -151,45 +101,45 @@ spec:
   {{- end }}
 
   # Monitoring
-  monitoring:
-    enablePodMonitor: {{ .Values.db.monitoring.enabled | default true }}
-    {{- if .Values.db.monitoring.customQueriesConfigMap }}
-    customQueriesConfigMap:
-      - name: {{ .Values.db.monitoring.customQueriesConfigMap }}
-        key: queries
-    {{- end }}
+  # monitoring:
+  #   enablePodMonitor: {{ .Values.db.monitoring.enabled | default true }}
+  #   {{- if .Values.db.monitoring.customQueriesConfigMap }}
+  #   customQueriesConfigMap:
+  #     - name: {{ .Values.db.monitoring.customQueriesConfigMap }}
+  #       key: queries
+  #   {{- end }}
 
   # Resources
   resources:
     {{- toYaml .Values.db.cluster.resources | nindent 4 }}
 
-  {{- if .Values.db.nodeSelector }}
-  # Node Selector
-  nodeSelector:
-    {{- toYaml .Values.db.nodeSelector | nindent 4 }}
-  {{- end }}
+  # {{- if .Values.db.nodeSelector }}
+  # # Node Selector
+  # nodeSelector:
+  #   {{- toYaml .Values.db.nodeSelector | nindent 4 }}
+  # {{- end }}
 
-  {{- if or .Values.db.cluster.enablePodAntiAffinity .Values.db.affinity }}
-  # Affinity
-  affinity:
-    {{- if .Values.db.cluster.enablePodAntiAffinity }}
-    podAntiAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchLabels:
-                cnpg.io/cluster: {{ include "supabase.db.clusterName" . }}
-            topologyKey: kubernetes.io/hostname
-    {{- end }}
-    {{- if .Values.db.affinity }}
-    {{- toYaml .Values.db.affinity | nindent 4 }}
-    {{- end }}
-  {{- end }}
+  # {{- if or .Values.db.cluster.enablePodAntiAffinity .Values.db.affinity }}
+  # # Affinity
+  # affinity:
+  #   {{- if .Values.db.cluster.enablePodAntiAffinity }}
+  #   podAntiAffinity:
+  #     preferredDuringSchedulingIgnoredDuringExecution:
+  #       - weight: 100
+  #         podAffinityTerm:
+  #           labelSelector:
+  #             matchLabels:
+  #               cnpg.io/cluster: {{ include "supabase.db.clusterName" . }}
+  #           topologyKey: kubernetes.io/hostname
+  #   {{- end }}
+  #   {{- if .Values.db.affinity }}
+  #   {{- toYaml .Values.db.affinity | nindent 4 }}
+  #   {{- end }}
+  # {{- end }}
 
-  {{- if .Values.db.tolerations }}
-  # Tolerations
-  tolerations:
-    {{- toYaml .Values.db.tolerations | nindent 4 }}
-  {{- end }}
-{{- end }}
+#   {{- if .Values.db.tolerations }}
+#   # Tolerations
+#   tolerations:
+#     {{- toYaml .Values.db.tolerations | nindent 4 }}
+#   {{- end }}
+# {{- end }}

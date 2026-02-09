@@ -95,6 +95,11 @@ db:
     pullPolicy: IfNotPresent
     tag: "latest"
 
+  migrationImage:
+    repository: ghcr.io/da-wilky/supabase-migrations-base
+    pullPolicy: IfNotPresent
+    tag: "latest"
+
   imagePullSecrets: []
 
   # CNPG Cluster Configuration
@@ -122,6 +127,11 @@ db:
     parameters: {}
       # work_mem: "4MB"
       # max_wal_size: "1GB"
+
+    # Shared preload libraries
+    sharedPreloadLibraries: []
+      # - pg_stat_statements (default)
+      # - pg_net (default)
 
     # Resource requests and limits
     resources:

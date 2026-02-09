@@ -57,9 +57,10 @@ spec:
                 if pg_isready -h $PGHOST -p $PGPORT -U $PGUSER; then
                   echo "Database is accepting connections, verifying cluster health..."
 
-                  # Additional check: try to connect and run a simple query
-                  if psql -h $PGHOST -p $PGPORT -U $PGUSER -d $PGDATABASE -c "SELECT 1" >/dev/null 2>&1; then
-                    echo "Successfully connected to database and executed query."
+                  # Verify init scripts completed: supabase_admin must be superuser
+                  if psql -t -A -h $PGHOST -p $PGPORT -U $PGUSER -d $PGDATABASE \
+                      -c "SELECT 1 FROM pg_roles WHERE rolname='supabase_admin' AND rolsuper=true" 2>/dev/null | grep -q 1; then
+                    echo "Init scripts completed (supabase_admin is superuser)."
                     echo "CNPG cluster is ready!"
                     exit 0
                   else

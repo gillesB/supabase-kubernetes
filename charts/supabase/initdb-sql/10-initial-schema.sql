@@ -37,6 +37,7 @@ grant service_role      to authenticator;
 grant supabase_admin    to authenticator;
 
 grant usage                     on schema public to postgres, anon, authenticated, service_role;
+grant create                    on schema public to supabase_admin;
 alter default privileges in schema public grant all on tables to postgres, anon, authenticated, service_role;
 alter default privileges in schema public grant all on functions to postgres, anon, authenticated, service_role;
 alter default privileges in schema public grant all on sequences to postgres, anon, authenticated, service_role;
