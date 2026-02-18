@@ -18,4 +18,36 @@ data:
 {{ .Files.Get "initdb-sql/13-post-setup.sql" | indent 4 }}
   14-webhooks.sql: |
 {{ .Files.Get "initdb-sql/14-webhooks.sql" | indent 4 }}
+  15-jwt.sql: |
+    -- Create _analytics schema
+    CREATE SCHEMA IF NOT EXISTS _analytics;
+    ALTER SCHEMA _analytics OWNER TO supabase_admin;
+
+    -- Create _realtime schema
+    CREATE SCHEMA IF NOT EXISTS _realtime;
+    ALTER SCHEMA _realtime OWNER TO supabase_admin;
+
+    -- Configure JWT application settings
+    ALTER DATABASE {{ .Values.secret.db.database | default "supabase" }} SET "app.settings.jwt_secret" TO '{{ .Values.secret.jwt.secret }}';
+    ALTER DATABASE {{ .Values.secret.db.database | default "supabase" }} SET "app.settings.jwt_exp" TO '{{ .Values.db.environment.JWT_EXP | default 3600 }}';
+  16-custom.sql: |
+    -- Auth Setup
+    ALTER USER supabase_auth_admin WITH PASSWORD '{{ .Values.secret.db.password }}';
+
+    ALTER FUNCTION auth.uid() OWNER TO supabase_auth_admin;
+    ALTER FUNCTION auth.role() OWNER TO supabase_auth_admin;
+
+    -- Authenticator Setup
+    ALTER USER authenticator WITH PASSWORD '{{ .Values.secret.db.password }}';
+
+    -- Storage Setup
+    ALTER USER supabase_storage_admin WITH PASSWORD '{{ .Values.secret.db.password }}';
+
+    CREATE TABLE IF NOT EXISTS "storage"."migrations" (
+      id integer PRIMARY KEY,
+      name varchar(100) UNIQUE NOT NULL,
+      hash varchar(40) NOT NULL, -- sha1 hex encoded hash of the file name and contents, to ensure it hasn't been altered since applying the migration
+      executed_at timestamp DEFAULT current_timestamp
+    );
+    ALTER TABLE "storage"."migrations" OWNER TO supabase_storage_admin;
 {{- end }}

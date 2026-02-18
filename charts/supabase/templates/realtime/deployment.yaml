@@ -72,6 +72,8 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+            - name: APP_NAME
+              value: realtime
             - name: DB_HOST
               value: {{ include "supabase.db.host" . }}
             - name: DB_PASSWORD

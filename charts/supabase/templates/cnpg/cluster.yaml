@@ -48,9 +48,6 @@ spec:
         name: supabase-db-supabase-admin
 
       postInitApplicationSQLRefs:
-        secretRefs:
-          - name: {{ include "supabase.initdb.secret" . }}
-            key: jwt-config.sql
         configMapRefs:
           - name: {{ include "supabase.initdb.configmap" . }}
             key: 00-custom.sql
@@ -64,6 +61,10 @@ spec:
             key: 13-post-setup.sql
           - name: {{ include "supabase.initdb.configmap" . }}
             key: 14-webhooks.sql
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 15-jwt.sql
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 16-custom.sql
 
   # Storage Configuration
   storage:
