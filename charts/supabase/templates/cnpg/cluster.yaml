@@ -19,7 +19,7 @@ spec:
 
   enableSuperuserAccess: true
   superuserSecret:
-    name: supabase-db-postgres
+    name: {{ .Release.Name }}-db-postgres
 
   # PostgreSQL Configuration
   postgresql:
@@ -45,7 +45,7 @@ spec:
       database: supabase
       owner: supabase_admin
       secret:
-        name: supabase-db-supabase-admin
+        name: {{ .Release.Name }}-db-supabase-admin
 
       postInitApplicationSQLRefs:
         configMapRefs:
