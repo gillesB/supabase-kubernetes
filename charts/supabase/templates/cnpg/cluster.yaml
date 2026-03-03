@@ -42,8 +42,8 @@ spec:
   # Bootstrap - Three-phase initialization
   bootstrap:
     initdb:
-      database: supabase
-      owner: supabase_admin
+      database: {{ .Values.secret.db.database }}
+      owner: {{ .Values.secret.db.username }}
       secret:
         name: {{ .Release.Name }}-db-supabase-admin
 
