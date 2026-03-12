@@ -126,3 +126,10 @@ CNPG backup secret name
 {{- printf "%s-backup-s3" .Release.Name }}
 {{- end }}
 {{- end }}
+
+{{/*
+CNPG plugin ObjectStore name
+*/}}
+{{- define "supabase.cnpg.objectStore" -}}
+{{- printf "%s-db-object-store" .Release.Name }}
+{{- end }}

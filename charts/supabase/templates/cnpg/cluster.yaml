@@ -77,70 +77,15 @@ spec:
   # primaryUpdateStrategy: {{ .Values.db.cluster.primaryUpdateStrategy | default "unsupervised" }}
 
   {{- if .Values.db.backup.enabled }}
-  # Backup Configuration
-  backup:
-    barmanObjectStore:
-      destinationPath: "s3://{{ .Values.db.backup.s3.bucket }}{{ .Values.db.backup.s3.path | default "" }}"
-      endpointURL: "https://{{ .Values.db.backup.s3.endpoint }}"
-      s3Credentials:
-        accessKeyId:
-          name: {{ include "supabase.cnpg.backupSecret" . }}
-          key: ACCESS_KEY_ID
-        secretAccessKey:
-          name: {{ include "supabase.cnpg.backupSecret" . }}
-          key: ACCESS_SECRET_KEY
-      {{- if .Values.db.backup.s3.region }}
-      serverName: {{ include "supabase.db.clusterName" . }}
-      {{- end }}
-      wal:
-        compression: {{ .Values.db.backup.wal.compression | default "gzip" }}
-        {{- if .Values.db.backup.wal.encryption }}
-        encryption: {{ .Values.db.backup.wal.encryption }}
-        {{- end }}
-        maxParallel: {{ .Values.db.backup.wal.maxParallel | default 2 }}
-    retentionPolicy: {{ .Values.db.backup.retentionPolicy | default "30d" }}
+  # Plugin Configuration (barman-cloud sidecar)
+  plugins:
+    - name: {{ .Values.db.backup.pluginName | default "barman-cloud.cloudnative-pg.io" }}
+      parameters:
+        barmanObjectName: {{ include "supabase.cnpg.objectStore" . }}
   {{- end }}
-
-  # Monitoring
-  # monitoring:
-  #   enablePodMonitor: {{ .Values.db.monitoring.enabled | default true }}
-  #   {{- if .Values.db.monitoring.customQueriesConfigMap }}
-  #   customQueriesConfigMap:
-  #     - name: {{ .Values.db.monitoring.customQueriesConfigMap }}
-  #       key: queries
-  #   {{- end }}
 
   # Resources
   resources:
     {{- toYaml .Values.db.cluster.resources | nindent 4 }}
 
-  # {{- if .Values.db.nodeSelector }}
-  # # Node Selector
-  # nodeSelector:
-  #   {{- toYaml .Values.db.nodeSelector | nindent 4 }}
-  # {{- end }}
-
-  # {{- if or .Values.db.cluster.enablePodAntiAffinity .Values.db.affinity }}
-  # # Affinity
-  # affinity:
-  #   {{- if .Values.db.cluster.enablePodAntiAffinity }}
-  #   podAntiAffinity:
-  #     preferredDuringSchedulingIgnoredDuringExecution:
-  #       - weight: 100
-  #         podAffinityTerm:
-  #           labelSelector:
-  #             matchLabels:
-  #               cnpg.io/cluster: {{ include "supabase.db.clusterName" . }}
-  #           topologyKey: kubernetes.io/hostname
-  #   {{- end }}
-  #   {{- if .Values.db.affinity }}
-  #   {{- toYaml .Values.db.affinity | nindent 4 }}
-  #   {{- end }}
-  # {{- end }}
-
-#   {{- if .Values.db.tolerations }}
-#   # Tolerations
-#   tolerations:
-#     {{- toYaml .Values.db.tolerations | nindent 4 }}
-#   {{- end }}
-# {{- end }}
+{{- end }}

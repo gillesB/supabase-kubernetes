@@ -154,20 +154,25 @@ db:
   # Backup Configuration
   backup:
     enabled: false
+    pluginName: barman-cloud.cloudnative-pg.io
     s3:
       existingSecret: ""  # Reference external secret
       accessKeyId: ""
       secretAccessKey: ""
-      endpoint: "s3.amazonaws.com"
-      bucket: "my-supabase-backups"
-      region: "us-east-1"
+      endpoint: ""
+      bucket: ""
+      region: ""
       path: "/supabase/postgres"
-    schedule: "0 2 * * *"  # Daily at 2 AM UTC
+    # Schedule uses 6-field cron format: second, minute, hour, day of month, month, day of week
+    schedule: "0 0 2 * * *"  # Daily at 2 AM UTC
     retentionPolicy: "30d"
     wal:
       compression: "gzip"
       encryption: ""  # AES256 or empty
       maxParallel: 2
+    data:
+      compression: "gzip"
+      encryption: ""  # AES256 or empty
     recovery:  # For Point-in-Time Recovery
       enabled: false
       backupName: "latest"
