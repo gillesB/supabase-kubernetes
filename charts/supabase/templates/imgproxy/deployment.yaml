@@ -9,6 +9,8 @@ spec:
   {{- if not .Values.imgproxy.autoscaling.enabled }}
   replicas: {{ .Values.imgproxy.replicaCount }}
   {{- end }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "supabase.imgproxy.selectorLabels" . | nindent 6 }}
