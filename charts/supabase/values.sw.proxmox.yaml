@@ -16,6 +16,9 @@ secret:
     username: supabase
     password: supabase
   db:
+    superuser:
+      username: postgres
+      password: "123123123"
     username: supabase_admin
     password: example123456
     database: supabase
