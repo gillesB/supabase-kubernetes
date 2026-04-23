@@ -222,6 +222,9 @@ db:
   # 10000000000000_demote-postgres.sql is automatically skipped (CNPG needs postgres as superuser).
   disableSupabaseMigrations: false
 
+  # Set to true to skip the entire initdb process, including Supabase and user-provided migrations.
+  disableInitDb: false
+
   # Custom Migration Job Configuration
   # Only relevant when providing your own SQL migration files via a ConfigMap.
   migrations:
@@ -252,6 +255,15 @@ db:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+
+  # External access to the PostgreSQL primary via a dedicated Service
+  externalAccess:
+    enabled: false
+    type: LoadBalancer  # LoadBalancer or NodePort
+    port: 5432
+    loadBalancerIP: ""
+    loadBalancerSourceRanges: []
+    annotations: {}
 
 # Studio Application
 studio:

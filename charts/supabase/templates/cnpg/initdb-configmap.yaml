@@ -1,4 +1,4 @@
-{{- if .Values.db.enabled -}}
+{{- if and .Values.db.enabled (not .Values.db.disableInitDb) -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:

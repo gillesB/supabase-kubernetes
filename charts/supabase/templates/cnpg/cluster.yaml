@@ -39,6 +39,7 @@ spec:
       {{- toYaml .Values.db.cluster.sharedPreloadLibraries | nindent 6 }}
       {{- end }}
 
+  {{- if not .Values.db.disableInitDb }}
   # Bootstrap - Three-phase initialization
   bootstrap:
     initdb:
@@ -65,6 +66,7 @@ spec:
             key: 15-jwt.sql
           - name: {{ include "supabase.initdb.configmap" . }}
             key: 16-custom.sql
+  {{- end }}
 
   # Storage Configuration
   storage:

@@ -1,0 +1,29 @@
+{{- if and .Values.db.enabled .Values.db.externalAccess.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "supabase.db.clusterName" . }}-external
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+  {{- with .Values.db.externalAccess.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.db.externalAccess.type | default "LoadBalancer" }}
+  selector:
+    cnpg.io/cluster: {{ include "supabase.db.clusterName" . }}
+    cnpg.io/instanceRole: primary
+  ports:
+    - name: postgresql
+      port: {{ .Values.db.externalAccess.port | default 5432 }}
+      targetPort: 5432
+      protocol: TCP
+  {{- if .Values.db.externalAccess.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.db.externalAccess.loadBalancerIP }}
+  {{- end }}
+  {{- if .Values.db.externalAccess.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml .Values.db.externalAccess.loadBalancerSourceRanges | nindent 4 }}
+  {{- end }}
+{{- end }}
