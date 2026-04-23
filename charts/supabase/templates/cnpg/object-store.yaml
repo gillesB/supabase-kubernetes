@@ -1,0 +1,31 @@
+{{- if and .Values.db.enabled .Values.db.backup.enabled -}}
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: {{ include "supabase.cnpg.objectStore" . }}
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  configuration:
+    destinationPath: "s3://{{ .Values.db.backup.s3.bucket }}{{ .Values.db.backup.s3.path | default "" }}"
+    endpointURL: {{ .Values.db.backup.s3.endpoint | quote }}
+    s3Credentials:
+      accessKeyId:
+        name: {{ include "supabase.cnpg.backupSecret" . }}
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: {{ include "supabase.cnpg.backupSecret" . }}
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: {{ .Values.db.backup.wal.compression | default "gzip" }}
+      {{- if .Values.db.backup.wal.encryption }}
+      encryption: {{ .Values.db.backup.wal.encryption }}
+      {{- end }}
+      maxParallel: {{ .Values.db.backup.wal.maxParallel | default 2 }}
+    data:
+      compression: {{ .Values.db.backup.data.compression | default "gzip" }}
+      {{- if .Values.db.backup.data.encryption }}
+      encryption: {{ .Values.db.backup.data.encryption }}
+      {{- end }}
+  retentionPolicy: {{ .Values.db.backup.retentionPolicy | default "30d" }}
+{{- end }}

@@ -16,6 +16,15 @@ You can find the documentation inside the [chart directory](./charts/supabase/RE
 
 - [ ] Multi-node Support
 
+## Update Password
+
+To update the password of a user from the supabase dashboard run the following sql query
+```sql
+update auth.users
+set encrypted_password = crypt('123', gen_salt('bf'))
+where email = 'admin@example.com';
+```
+
 ## Support
 
 This project is supported by the community and not officially supported by Supabase. Please do not create any issues on the official Supabase repositories if you face any problems using this project, but rather open an issue on this repository.
