@@ -92,6 +92,25 @@ db:
   # Enable database provisioning (CNPG mode only)
   enabled: true
 
+  # Use CNPG instead of default deployment
+  useCNPG: true
+
+  # LEGACY SETTINGS
+  legacy:
+    replicaCount: 1
+    podAnnotations: {}
+    podSecurityContext: {}
+    securityContext: {}
+    livenessProbe: {}
+    readinessProbe: {}
+    resources: {}
+    volumes: {}
+    volumeMounts: {}
+    config: {}
+    persistence:
+      annotations: {}
+  # ####
+
   # PostgreSQL Image Configuration
   image:
     repository: supabase/postgres
@@ -210,12 +229,6 @@ db:
     size: 8Gi
     accessModes:
       - ReadWriteOnce
-
-  # Wait Hook Configuration (optional - services have their own init containers)
-  waitHook:
-    enabled: false  # Set to true to create a Job that waits for DB before deployment
-    image: "postgres:15-alpine"
-    timeout: 300  # seconds
 
   # Set to true to skip running the Supabase built-in migrations.
   # By default they always run on install/upgrade via dbmate (idempotent).

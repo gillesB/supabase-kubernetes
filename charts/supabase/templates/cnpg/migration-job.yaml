@@ -1,4 +1,4 @@
-{{- if and .Values.db.enabled (or (not .Values.db.disableSupabaseMigrations) .Values.db.migrations.customConfigMap) -}}
+{{- if and .Values.db.enabled .Values.db.useCNPG (or (not .Values.db.disableSupabaseMigrations) .Values.db.migrations.customConfigMap) -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -22,21 +22,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       initContainers:
-        - name: wait-for-db
-          image: postgres:15-alpine
-          command: ["/bin/sh", "-c"]
-          args:
-            - |
-              until pg_isready -h "$PGHOST" -p "$PGPORT"; do
-                echo "Waiting for database..."
-                sleep 5
-              done
-              echo "Database is ready!"
-          env:
-            - name: PGHOST
-              value: {{ include "supabase.db.host" . }}
-            - name: PGPORT
-              value: "5432"
+        {{- include "supabase.db.waitForDbInitContainer" . | nindent 8 }}
       containers:
         - name: migrations
           image: {{ .Values.db.migrationImage.repository }}:{{ .Values.db.migrationImage.tag | default "latest" }}

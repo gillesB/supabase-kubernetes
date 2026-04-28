@@ -1,0 +1,18 @@
+{{- if and .Values.db.enabled (not .Values.db.useCNPG) -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: "temporary-test"
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  type: LoadBalancer
+  loadBalancerIP: "172.20.0.209"
+  ports:
+    - port: 55433
+      targetPort: 5432
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "supabase.db.selectorLabels" . | nindent 4 }}
+{{- end }}

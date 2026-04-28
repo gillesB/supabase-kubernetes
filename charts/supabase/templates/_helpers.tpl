@@ -78,6 +78,43 @@ Returns the CNPG read-write service name: {release-name}-db-rw
 {{- end }}
 
 {{/*
+Reusable migration initContainer that waits for PostgreSQL to accept connections.
+*/}}
+{{- define "supabase.db.waitForDbInitContainer" -}}
+- name: wait-for-db
+  image: {{ .Values.db.waitHook.image | default "postgres:15-alpine" }}
+  imagePullPolicy: IfNotPresent
+  command: ["/bin/sh", "-c"]
+  args:
+    - |
+      until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE"; do
+        echo "Waiting for database..."
+        sleep 5
+      done
+      echo "Database is ready!"
+  env:
+    - name: PGHOST
+      value: {{ include "supabase.db.host" . }}
+    - name: PGPORT
+      value: "5432"
+    - name: PGUSER
+      valueFrom:
+        secretKeyRef:
+          name: {{ include "supabase.secret.db" . }}
+          key: {{ .Values.secret.db.secretRefKey.username | default "username" }}
+    - name: PGPASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: {{ include "supabase.secret.db" . }}
+          key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
+    - name: PGDATABASE
+      valueFrom:
+        secretKeyRef:
+          name: {{ include "supabase.secret.db" . }}
+          key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
+{{- end }}
+
+{{/*
 CNPG cluster name
 */}}
 {{- define "supabase.db.clusterName" -}}
