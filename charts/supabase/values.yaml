@@ -92,8 +92,11 @@ db:
   # Enable database provisioning (CNPG mode only)
   enabled: true
 
-  # Use CNPG instead of default deployment
-  useCNPG: true
+  # Enable CNPG
+  enableCNPG: true
+  # Enable legacy
+  enableLegacy: true
+  # If both enabled, Legacy takes precedence and resources will access the legacy db.
 
   # LEGACY SETTINGS
   legacy:

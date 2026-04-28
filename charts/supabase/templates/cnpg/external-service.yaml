@@ -1,4 +1,4 @@
-{{- if and .Values.db.enabled .Values.db.useCNPG .Values.db.externalAccess.enabled -}}
+{{- if and .Values.db.enabled .Values.db.enableCNPG .Values.db.externalAccess.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:

@@ -1,4 +1,4 @@
-{{- if and .Values.db.enabled .Values.db.useCNPG (or (not .Values.db.disableSupabaseMigrations) .Values.db.migrations.customConfigMap) -}}
+{{- if and .Values.db.enabled .Values.db.enableCNPG (or (not .Values.db.disableSupabaseMigrations) .Values.db.migrations.customConfigMap) -}}
 apiVersion: batch/v1
 kind: Job
 metadata:

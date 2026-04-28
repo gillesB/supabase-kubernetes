@@ -61,11 +61,12 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
+
 {{/*
 Get the database host for CNPG cluster
 Returns the CNPG read-write service name: {release-name}-db-rw
 */}}
-{{- define "supabase.db.host" -}}
+{{- define "supabase.db.cnpgHost" -}}
 {{- if .Values.db.enabled -}}
   {{- if .Values.db.cluster.nameOverride -}}
     {{- printf "%s-rw" .Values.db.cluster.nameOverride -}}
@@ -74,6 +75,33 @@ Returns the CNPG read-write service name: {release-name}-db-rw
   {{- end -}}
 {{- else -}}
   {{- required "DB_HOST must be specified in service environment when db.enabled=false" .Values.auth.environment.DB_HOST -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Get the database host for a legacy (normal Deployment) postgres instance
+Returns the standard Kubernetes service name: {release-name}-db
+*/}}
+{{- define "supabase.db.legacyHost" -}}
+{{- if .Values.db.enabled -}}
+  {{- if .Values.db.cluster.nameOverride -}}
+    {{- .Values.db.cluster.nameOverride -}}
+  {{- else -}}
+    {{- printf "%s-db" .Release.Name -}}
+  {{- end -}}
+{{- else -}}
+  {{- required "DB_HOST must be specified in service environment when db.enabled=false" .Values.auth.environment.DB_HOST -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Get the database host — delegates to legacyHost when db.enableLegacy=true, cnpgHost otherwise
+*/}}
+{{- define "supabase.db.host" -}}
+{{- if .Values.db.enableLegacy -}}
+  {{- include "supabase.db.legacyHost" . -}}
+{{- else -}}
+  {{- include "supabase.db.cnpgHost" . -}}
 {{- end -}}
 {{- end }}
 

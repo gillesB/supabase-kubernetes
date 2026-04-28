@@ -1,4 +1,4 @@
-{{- if and .Values.db.enabled (not .Values.db.useCNPG) -}}
+{{- if and .Values.db.enabled .Values.db.enableLegacy -}}
 {{- if .Values.db.persistence.enabled -}}
 apiVersion: v1
 kind: PersistentVolumeClaim
