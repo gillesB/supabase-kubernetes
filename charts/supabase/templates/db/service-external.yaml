@@ -1,15 +1,17 @@
-{{- if and .Values.db.enabled .Values.db.enableLegacy -}}
+{{- if and .Values.db.enabled .Values.db.enableLegacy .Values.db.legacy.externalAccess.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:
-  name: "temporary-test"
+  name: {{ include "supabase.db.fullname" . }}-service-external
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
-  type: LoadBalancer
-  loadBalancerIP: "172.20.0.209"
+  type: {{ .Values.db.legacy.externalAccess.type | default "LoadBalancer" }}
+  {{- if .Values.db.legacy.externalAccess.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.db.legacy.externalAccess.loadBalancerIP }}
+  {{- end }}
   ports:
-    - port: 55433
+    - port: {{ .Values.db.legacy.externalAccess.port | default 5432 }}
       targetPort: 5432
       protocol: TCP
       name: http

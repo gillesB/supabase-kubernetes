@@ -124,6 +124,11 @@ db:
       type: ClusterIP
       port: 5432
       loadBalancerIp: ""
+    externalAccess:
+      enabled: false
+      type: LoadBalancer
+      port: 5432
+      loadBalancerIP: ""
     autoscaling:
       enabled: true
       minReplicas: 1

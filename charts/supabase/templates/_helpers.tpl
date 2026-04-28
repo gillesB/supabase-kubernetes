@@ -83,15 +83,16 @@ Get the database host for a legacy (normal Deployment) postgres instance
 Returns the standard Kubernetes service name: {release-name}-db
 */}}
 {{- define "supabase.db.legacyHost" -}}
-{{- if .Values.db.enabled -}}
-  {{- if .Values.db.cluster.nameOverride -}}
-    {{- .Values.db.cluster.nameOverride -}}
-  {{- else -}}
-    {{- printf "%s-db" .Release.Name -}}
-  {{- end -}}
-{{- else -}}
-  {{- required "DB_HOST must be specified in service environment when db.enabled=false" .Values.auth.environment.DB_HOST -}}
-{{- end -}}
+{{- if .Values.db.fullnameOverride }}
+  {{- .Values.db.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+  {{- $name := default (print .Chart.Name "-db") .Values.db.nameOverride }}
+  {{- if contains $name .Release.Name }}
+    {{- .Release.Name | trunc 63 | trimSuffix "-" }}
+  {{- else }}
+    {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+  {{- end }}
+{{- end }}
 {{- end }}
 
 {{/*
