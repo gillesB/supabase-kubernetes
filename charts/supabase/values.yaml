@@ -112,6 +112,23 @@ db:
     config: {}
     persistence:
       annotations: {}
+    serviceAccount:
+      # Specifies whether a service account should be created
+      create: true
+      # Annotations to add to the service account
+      annotations: {}
+      # The name of the service account to use.
+      # If not set and create is true, a name is generated using the fullname template
+      name: ""
+    service:
+      type: ClusterIP
+      port: 5432
+      loadBalancerIp: ""
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 100
+      targetCPUUtilizationPercentage: 80
   # ####
 
   # PostgreSQL Image Configuration
