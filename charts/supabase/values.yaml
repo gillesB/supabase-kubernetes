@@ -111,6 +111,7 @@ db:
     volumeMounts: {}
     config: {}
     persistence:
+      storageClassName: ""
       annotations: {}
     serviceAccount:
       # Specifies whether a service account should be created
@@ -256,7 +257,7 @@ db:
   # Storage Configuration
   persistence:
     enabled: true
-    storageClassName: ""
+    storageClassName: "local-path"
     size: 8Gi
     accessModes:
       - ReadWriteOnce
