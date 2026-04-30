@@ -67,6 +67,28 @@ spec:
           - name: {{ include "supabase.initdb.configmap" . }}
             key: 16-custom.sql
   {{- end }}
+  {{- if .Values.db.enableLegacy }}
+  bootstrap:
+    pg_basebackup:
+      source: legacy-cluster
+      database: {{ .Values.secret.db.replica_target_database }}
+
+  replica:
+    enabled: true
+    source: legacy-cluster
+
+  externalClusters:
+  - name: legacy-cluster
+    connectionParameters:
+      host: {{ include "supabase.db.legacyHost" . }}
+      user: {{ .Values.db.legacy.secret.db.username }}
+      password: {{ .Values.db.legacy.secret.db.password }}
+      dbname: {{ .Values.db.legacy.secret.db.database }}
+      sslmode: disable
+  {{- else }}
+  replica:
+    enabled: false
+  {{- end }}
 
   # Storage Configuration
   storage:

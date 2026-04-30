@@ -37,6 +37,7 @@ secret:
     username: ""
     password: ""
     database: ""
+    replica_target_database: ""
     # specify existing secret, which takes precedence over variables above
     secretRef: ""
     # override secret keys for existing secret refs
@@ -107,8 +108,8 @@ db:
     livenessProbe: {}
     readinessProbe: {}
     resources: {}
-    volumes: {}
-    volumeMounts: {}
+    volumes: []
+    volumeMounts: []
     config: {}
     persistence:
       storageClassName: ""
