@@ -46,6 +46,11 @@ spec:
 
               echo "Copying user-defined migration scripts..."
               cp /custom-migrations/* /initdb.d/migrations/ || echo "Skip migrations"
+
+              echo "Appending replication line to pg_hba.conf..."
+              cp /etc/postgresql/pg_hba.conf /pg-hba/pg_hba.conf
+              echo "host  replication  {{ .Values.db.legacy.secret.db.username }}  10.42.0.0/16  scram-sha-256" >> /pg-hba/pg_hba.conf
+
               echo "Initialization scripts are ready"
           volumeMounts:
             - mountPath: /custom-init-scripts
@@ -54,6 +59,8 @@ spec:
               name: custom-migrations
             - mountPath: /initdb.d
               name: initdb-scripts-data
+            - mountPath: /pg-hba
+              name: pg-hba-config
       containers:
         - name: {{ include "supabase.db.name" $ }}
           securityContext:
@@ -133,6 +140,9 @@ spec:
             {{- with .Values.db.legacy.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
+            - mountPath: /etc/postgresql/pg_hba.conf
+              name: pg-hba-config
+              subPath: pg_hba.conf
             {{- if .Values.db.persistence.enabled }}
             - mountPath: /var/lib/postgresql/data
               name: postgres-volume
@@ -149,6 +159,9 @@ spec:
         - name: custom-init-scripts
           configMap:
             name: {{ include "supabase.db.fullname" . }}-initdb
+        - name: pg-hba-config
+          emptyDir:
+            medium: ""
         - name: custom-migrations
           configMap:
             name: {{ include "supabase.db.fullname" . }}-migrations

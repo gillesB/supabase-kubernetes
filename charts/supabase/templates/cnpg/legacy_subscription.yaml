@@ -1,0 +1,14 @@
+{{- if .Values.db.enableLegacy }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Subscription
+metadata:
+  name: {{ .Release.Name }}-rtls-subscription
+  namespace: default
+spec:
+  cluster:
+    name: {{ include "supabase.db.clusterName" . }}
+  dbname: {{ .Values.secret.db.replica_target_database }}
+  name: rtls_sub
+  publicationName: rtls_pub
+  externalClusterName: legacy-cluster
+{{- end }}
