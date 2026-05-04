@@ -67,15 +67,19 @@ spec:
           - name: {{ include "supabase.initdb.configmap" . }}
             key: 16-custom.sql
   {{- end }}
+
   {{- if .Values.db.enableLegacy }}
   bootstrap:
-    pg_basebackup:
-      source: legacy-cluster
+    initdb:
       database: {{ .Values.secret.db.replica_target_database }}
+      owner: {{ .Values.secret.db.username }}
+      secret:
+        name: {{ .Release.Name }}-db-supabase-admin
 
-  replica:
-    enabled: true
-    source: legacy-cluster
+      postInitApplicationSQLRefs:
+        configMapRefs:
+          - name: {{ include "supabase.initdb.configmap" . }}-legacy
+            key: 20-rtls_schema_2026_05_01.sql
 
   externalClusters:
   - name: legacy-cluster
@@ -85,9 +89,6 @@ spec:
       password: {{ .Values.db.legacy.secret.db.password }}
       dbname: {{ .Values.db.legacy.secret.db.database }}
       sslmode: disable
-  {{- else }}
-  replica:
-    enabled: false
   {{- end }}
 
   # Storage Configuration
