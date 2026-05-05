@@ -201,21 +201,21 @@ ALTER ROLE supabase_storage_admin SET log_statement TO 'none';
 -- Role memberships
 --
 
---GRANT anon TO authenticator WITH INHERIT FALSE GRANTED BY supabase_admin;
---GRANT anon TO postgres WITH ADMIN OPTION, INHERIT TRUE GRANTED BY supabase_admin;
---GRANT authenticated TO authenticator WITH INHERIT FALSE GRANTED BY supabase_admin;
---GRANT authenticated TO postgres WITH ADMIN OPTION, INHERIT TRUE GRANTED BY supabase_admin;
---GRANT authenticator TO postgres WITH ADMIN OPTION, INHERIT TRUE GRANTED BY supabase_admin;
---GRANT authenticator TO supabase_storage_admin WITH INHERIT FALSE GRANTED BY supabase_admin;
---GRANT pg_create_subscription TO postgres WITH INHERIT TRUE GRANTED BY supabase_admin;
---GRANT pg_monitor TO postgres WITH ADMIN OPTION, INHERIT TRUE GRANTED BY supabase_admin;
---GRANT pg_read_all_data TO postgres WITH ADMIN OPTION, INHERIT TRUE GRANTED BY supabase_admin;
---GRANT pg_read_all_data TO supabase_etl_admin WITH INHERIT TRUE GRANTED BY supabase_admin;
---GRANT pg_read_all_data TO supabase_read_only_user WITH INHERIT TRUE GRANTED BY supabase_admin;
---GRANT pg_signal_backend TO postgres WITH ADMIN OPTION, INHERIT TRUE GRANTED BY supabase_admin;
---GRANT service_role TO authenticator WITH INHERIT FALSE GRANTED BY supabase_admin;
---GRANT service_role TO postgres WITH ADMIN OPTION, INHERIT TRUE GRANTED BY supabase_admin;
---GRANT supabase_functions_admin TO postgres WITH INHERIT TRUE GRANTED BY supabase_admin;
+GRANT anon TO authenticator WITH INHERIT FALSE;
+GRANT anon TO postgres WITH ADMIN OPTION, INHERIT TRUE;
+GRANT authenticated TO authenticator WITH INHERIT FALSE;
+GRANT authenticated TO postgres WITH ADMIN OPTION, INHERIT TRUE;
+GRANT authenticator TO postgres WITH ADMIN OPTION, INHERIT TRUE;
+GRANT authenticator TO supabase_storage_admin WITH INHERIT FALSE;
+GRANT pg_create_subscription TO postgres WITH INHERIT TRUE;
+GRANT pg_monitor TO postgres WITH ADMIN OPTION, INHERIT TRUE;
+GRANT pg_read_all_data TO postgres WITH ADMIN OPTION, INHERIT TRUE;
+GRANT pg_read_all_data TO supabase_etl_admin WITH INHERIT TRUE;
+GRANT pg_read_all_data TO supabase_read_only_user WITH INHERIT TRUE;
+GRANT pg_signal_backend TO postgres WITH ADMIN OPTION, INHERIT TRUE;
+GRANT service_role TO authenticator WITH INHERIT FALSE;
+GRANT service_role TO postgres WITH ADMIN OPTION, INHERIT TRUE;
+GRANT supabase_functions_admin TO postgres WITH INHERIT TRUE;
 
 CREATE SCHEMA _analytics;
 
@@ -283,7 +283,7 @@ CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 --
 -- TOC entry 6946 (class 0 OID 0)
 -- Dependencies: 8
--- Name: EXTENSION pg_net; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION pg_net; Type: COMMENT; Schema: -; Owner:
 --
 
 COMMENT ON EXTENSION pg_net IS 'Async HTTP';
@@ -430,7 +430,7 @@ CREATE EXTENSION IF NOT EXISTS pg_graphql WITH SCHEMA graphql;
 --
 -- TOC entry 6957 (class 0 OID 0)
 -- Dependencies: 2
--- Name: EXTENSION pg_graphql; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION pg_graphql; Type: COMMENT; Schema: -; Owner:
 --
 
 COMMENT ON EXTENSION pg_graphql IS 'pg_graphql: GraphQL support';
@@ -447,7 +447,7 @@ CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA extensions;
 --
 -- TOC entry 6958 (class 0 OID 0)
 -- Dependencies: 7
--- Name: EXTENSION pg_stat_statements; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION pg_stat_statements; Type: COMMENT; Schema: -; Owner:
 --
 
 COMMENT ON EXTENSION pg_stat_statements IS 'track planning and execution statistics of all SQL statements executed';
@@ -464,7 +464,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 --
 -- TOC entry 6959 (class 0 OID 0)
 -- Dependencies: 6
--- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner:
 --
 
 COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
@@ -481,7 +481,7 @@ CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions;
 --
 -- TOC entry 6960 (class 0 OID 0)
 -- Dependencies: 5
--- Name: EXTENSION postgis; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION postgis; Type: COMMENT; Schema: -; Owner:
 --
 
 COMMENT ON EXTENSION postgis IS 'PostGIS geometry and geography spatial types and functions';
@@ -498,7 +498,7 @@ CREATE EXTENSION IF NOT EXISTS supabase_vault WITH SCHEMA vault;
 --
 -- TOC entry 6961 (class 0 OID 0)
 -- Dependencies: 9
--- Name: EXTENSION supabase_vault; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION supabase_vault; Type: COMMENT; Schema: -; Owner:
 --
 
 COMMENT ON EXTENSION supabase_vault IS 'Supabase Vault Extension';
@@ -515,7 +515,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
 --
 -- TOC entry 6962 (class 0 OID 0)
 -- Dependencies: 4
--- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner:
 --
 
 COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
@@ -532,7 +532,7 @@ CREATE EXTENSION IF NOT EXISTS wrappers WITH SCHEMA extensions;
 --
 -- TOC entry 6963 (class 0 OID 0)
 -- Dependencies: 3
--- Name: EXTENSION wrappers; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION wrappers; Type: COMMENT; Schema: -; Owner:
 --
 
 COMMENT ON EXTENSION wrappers IS 'Foreign data wrappers developed by Supabase';
@@ -752,7 +752,7 @@ CREATE CAST (text AS public.elanguage) WITH INOUT AS ASSIGNMENT;
 CREATE FUNCTION auth.email() RETURNS text
     LANGUAGE sql STABLE
     AS $$
-  select 
+  select
   coalesce(
     nullif(current_setting('request.jwt.claim.email', true), ''),
     (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email')
@@ -779,7 +779,7 @@ COMMENT ON FUNCTION auth.email() IS 'Deprecated. Use auth.jwt() -> ''email'' ins
 CREATE FUNCTION auth.jwt() RETURNS jsonb
     LANGUAGE sql STABLE
     AS $$
-  select 
+  select
     coalesce(
         nullif(current_setting('request.jwt.claim', true), ''),
         nullif(current_setting('request.jwt.claims', true), '')
@@ -797,7 +797,7 @@ ALTER FUNCTION auth.jwt() OWNER TO supabase_auth_admin;
 CREATE FUNCTION auth.role() RETURNS text
     LANGUAGE sql STABLE
     AS $$
-  select 
+  select
   coalesce(
     nullif(current_setting('request.jwt.claim.role', true), ''),
     (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role')
@@ -824,7 +824,7 @@ COMMENT ON FUNCTION auth.role() IS 'Deprecated. Use auth.jwt() -> ''role'' inste
 CREATE FUNCTION auth.uid() RETURNS uuid
     LANGUAGE sql STABLE
     AS $$
-  select 
+  select
   coalesce(
     nullif(current_setting('request.jwt.claim.sub', true), ''),
     (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
@@ -1176,13 +1176,13 @@ begin
     raise debug 'PgBouncer auth request: %', p_usename;
 
     return query
-    select 
-        rolname::text, 
-        case when rolvaliduntil < now() 
-            then null 
-            else rolpassword::text 
-        end 
-    from pg_authid 
+    select
+        rolname::text,
+        case when rolvaliduntil < now()
+            then null
+            else rolpassword::text
+        end
+    from pg_authid
     where rolname=$1 and rolcanlogin;
 end;
 $_$;
@@ -1206,7 +1206,7 @@ declare
 begin
   -- Fetch user role once and store it to reduce number of calls
   -- select array(select jsonb_array_elements_text(auth.jwt() -> 'user_roles')::uuid) into user_role_ids;
-  
+
   -- Get user roles directly from database instead of JWT
   SELECT ARRAY(
     SELECT role_id
@@ -1608,14 +1608,14 @@ BEGIN
         INTO parent_path, NEW.hierarchy_level
         FROM rtls_config.area
         WHERE id_area = NEW.parent_area_id;
-        
+
         IF parent_path IS NULL THEN
             RAISE EXCEPTION 'Parent area not found';
         END IF;
-        
+
         NEW.hierarchy_path := array_append(parent_path, NEW.id_area);
     END IF;
-    
+
     NEW.updated_at := CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
@@ -2386,7 +2386,7 @@ CREATE FUNCTION storage.update_updated_at_column() RETURNS trigger
     AS $$
 BEGIN
     NEW.updated_at = now();
-    RETURN NEW; 
+    RETURN NEW;
 END;
 $$;
 
