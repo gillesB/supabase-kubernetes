@@ -1,0 +1,55 @@
+{{- if and .Values.db.enabled .Values.db.enableCNPG (or (not .Values.db.disableSupabaseMigrations) .Values.db.migrations.customConfigMap) -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-migrations
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,pre-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "supabase.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      {{- with .Values.db.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        {{- include "supabase.db.waitForDbInitContainer" . | nindent 8 }}
+      containers:
+        - name: migrations
+          image: {{ .Values.db.migrationImage.repository }}:{{ .Values.db.migrationImage.tag | default "latest" }}
+          imagePullPolicy: {{ .Values.db.migrationImage.pullPolicy | default "IfNotPresent" }}
+          env:
+            - name: PGHOST
+              value: {{ include "supabase.db.host" . }}
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db" . }}
+                  key: {{ .Values.secret.db.secretRefKey.username | default "username" }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db" . }}
+                  key: {{ .Values.secret.db.secretRefKey.password | default "password" }}
+            - name: PGDATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.db" . }}
+                  key: {{ .Values.secret.db.secretRefKey.database | default "database" }}
+            {{- with .Values.db.migrations.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.db.migrations.resources | nindent 12 }}
+{{- end }}

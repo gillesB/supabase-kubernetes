@@ -1,0 +1,133 @@
+global:
+  virtualIP: "172.20.0.200"  # Set this to your kube-vip virtual IP
+  virtualIPServices: "172.20.0.201"  # kube-vip virtual IP used for services
+  # storageClass: "local-path"
+  storageClass: "longhorn"
+
+secret:
+  jwt:
+    anonKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzU3NjI4MDAwLCJleHAiOjE5MTUzOTQ0MDB9.9--E_WSmGi0PYin12h2lUQb9oj5iMYZkgHVJsISG7JU
+    serviceKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3NTc2MjgwMDAsImV4cCI6MTkxNTM5NDQwMH0.0HA2uT8BtBStDAm7PNp0vyhiBM7rqNEBM3i95XWm0ds
+    secret: c8ruhAI0BR1yN7Eo3x3m7G35X4oTxAS4vSwDlsqk
+  smtp:
+    username: your-mail@example.com
+    password: example123456
+  dashboard:
+    username: supabase
+    password: supabase
+  db:
+    superuser:
+      username: postgres
+      password: "123123123"
+    username: supabase_admin
+    password: example123456
+    database: supabase
+  analytics:
+    apiKey: your-super-secret-and-long-logflare-key
+
+db:
+  enabled: true
+  livenessProbe:
+    exec:
+      command:
+        - pg_isready
+        - -U
+        - postgres
+  image:
+    repository: supabase/postgres
+
+  imagePullSecrets:
+    - name: dockerconfigjson-github-com
+  
+  # replicaCount: 3
+  # autoscaling:
+    # enabled: false
+  environment:
+    USELESS_VAR: "just to trigger redeploy"
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClass: "longhorn"
+
+storage:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClass: "longhorn"
+
+analytics:
+  enabled: true
+
+realtime:
+  enabled: true
+
+functions:
+  enabled: false
+  image:
+    repository: ghcr.io/nc-systems/rtls_supabase_edge_functions
+    pullPolicy: Always
+  imagePullSecrets:
+    - name: dockerconfigjson-github-com
+  environment:
+    DB_USERNAME: supabase_admin
+
+auth:
+  enabled: true
+  image:
+    repository: supabase/gotrue
+  environment:
+    API_EXTERNAL_URL: http://172.20.0.201:3000/
+
+    GOTRUE_SITE_URL: "http://rtls-controller-supabase-auth:9999"
+    GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+    GOTRUE_MAILER_AUTOCONFIRM: "false"
+    GOTRUE_SMTP_ADMIN_EMAIL: "your-mail@example.com"
+    GOTRUE_SMTP_HOST: "smtp.example.com"
+    GOTRUE_SMTP_PORT: "587"
+    GOTRUE_SMTP_SENDER_NAME: "your-mail@example.com"
+    GOTRUE_PASSWORD_REQUIRED_CHARACTERS: ""
+
+studio:
+  enabled: true
+  environment:
+    SUPABASE_PUBLIC_URL: http://172.20.0.201:31234/
+  service:
+    type: LoadBalancer
+    port: 31234
+    loadBalancerIp: 172.20.0.201
+
+kong:
+  enabled: true
+  image:
+    repository: kong
+  ingress:
+    enabled: true
+    className: "traefik"
+    hosts:
+      - host: ""
+        paths:
+          - path: /supabase
+            pathType: Prefix
+    annotations:
+      traefik.ingress.kubernetes.io/router.middlewares: "{{ .Release.Namespace }}-strip-supabase-prefix@kubernetescrd"
+
+rest:
+  enabled: true
+  image:
+    repository: postgrest/postgrest
+  # environment:
+    # PGRST_DB_SCHEMAS: public,storage,graphql_public,rtls_config,rtls_timeseries,rtls_measurement,rtls_measurement_2
+meta:
+  enabled: true
+
+vector:
+  enabled: false  # Set to true if you want to enable Vector for logs
+
+minio:
+  enabled: false  # Set to true if you want internal S3 storage
+
+imgproxy:
+  enabled: true
+  image:
+    repository: darthsim/imgproxy
