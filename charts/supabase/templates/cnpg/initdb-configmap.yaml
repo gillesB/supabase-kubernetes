@@ -50,6 +50,4 @@ data:
       executed_at timestamp DEFAULT current_timestamp
     );
     ALTER TABLE "storage"."migrations" OWNER TO supabase_storage_admin;
-  20-rtls_schema_2026_05_01.sql: |
-{{ .Files.Get "initdb-sql/20-rtls_schema_2026_05_01.sql" | indent 4 }}
 {{- end }}
