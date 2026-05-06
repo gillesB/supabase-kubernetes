@@ -11,8 +11,8 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if .Values.db.persistence.storageClassName }}
-  storageClassName: {{ .Values.db.persistence.storageClassName }}
+  {{- if .Values.db.legacy.persistence.storageClassName }}
+  storageClassName: {{ .Values.db.legacy.persistence.storageClassName }}
   {{- end }}
   accessModes:
   {{- range .Values.db.persistence.accessModes }}
