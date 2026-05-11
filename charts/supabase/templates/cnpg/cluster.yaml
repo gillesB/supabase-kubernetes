@@ -1,0 +1,116 @@
+{{- if and .Values.db.enabled .Values.db.enableCNPG -}}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "supabase.db.clusterName" . }}
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+spec:
+  instances: {{ .Values.db.cluster.instances | default 3 }}
+
+  imageName: {{ .Values.db.image.repository }}:{{ .Values.db.image.tag | default "latest" }}
+  {{- if .Values.db.imagePullSecrets }}
+  imagePullSecrets:
+    {{- toYaml .Values.db.imagePullSecrets | nindent 4 }}
+  {{- end }}
+
+  postgresUID: {{ .Values.db.cluster.postgres.uid | default 101 }}
+  postgresGID: {{ .Values.db.cluster.postgres.gid | default 102 }}
+
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: {{ .Release.Name }}-db-postgres
+
+  # PostgreSQL Configuration
+  postgresql:
+    parameters:
+      max_connections: {{ .Values.db.cluster.maxConnections | default "200" | quote }}
+      shared_buffers: {{ .Values.db.cluster.sharedBuffers | default "256MB" | quote }}
+      effective_cache_size: {{ .Values.db.cluster.effectiveCacheSize | default "1GB" | quote }}
+      maintenance_work_mem: {{ .Values.db.cluster.maintenanceWorkMem | default "64MB" | quote }}
+      wal_buffers: {{ .Values.db.cluster.walBuffers | default "16MB" | quote }}
+      {{- if .Values.db.cluster.parameters }}
+      {{- toYaml .Values.db.cluster.parameters | nindent 6 }}
+      {{- end }}
+    shared_preload_libraries:
+      - pg_stat_statements
+      - pg_net
+      {{- if .Values.db.cluster.sharedPreloadLibraries }}
+      {{- toYaml .Values.db.cluster.sharedPreloadLibraries | nindent 6 }}
+      {{- end }}
+
+  {{- if not .Values.db.disableInitDb }}
+  # Bootstrap - Three-phase initialization
+  bootstrap:
+    initdb:
+      database: {{ .Values.secret.db.database }}
+      owner: {{ .Values.secret.db.username }}
+      secret:
+        name: {{ .Release.Name }}-db-supabase-admin
+
+      postInitApplicationSQLRefs:
+        configMapRefs:
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 00-custom.sql
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 10-initial-schema.sql
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 11-auth-schema.sql
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 12-storage-schema.sql
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 13-post-setup.sql
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 14-webhooks.sql
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 15-jwt.sql
+          - name: {{ include "supabase.initdb.configmap" . }}
+            key: 16-custom.sql
+  {{- end }}
+
+  {{- if .Values.db.enableLegacy }}
+  bootstrap:
+    initdb:
+      database: {{ .Values.secret.db.replica_target_database }}
+      owner: {{ .Values.secret.db.username }}
+      secret:
+        name: {{ .Release.Name }}-db-supabase-admin
+
+      postInitApplicationSQLRefs:
+        configMapRefs:
+          - name: {{ include "supabase.initdb.configmap" . }}-legacy
+            key: 20-rtls_schema_2026_05_01.sql
+
+  externalClusters:
+  - name: legacy-cluster
+    connectionParameters:
+      host: {{ include "supabase.db.legacyHost" . }}
+      user: {{ .Values.db.legacy.secret.db.username }}
+      password: {{ .Values.db.legacy.secret.db.password }}
+      dbname: {{ .Values.db.legacy.secret.db.database }}
+      sslmode: disable
+  {{- end }}
+
+  # Storage Configuration
+  storage:
+    size: {{ .Values.db.persistence.size | default "8Gi" }}
+    {{- if .Values.db.persistence.storageClassName }}
+    storageClass: {{ .Values.db.persistence.storageClassName }}
+    {{- end }}
+
+  # Primary Update Strategy
+  # primaryUpdateStrategy: {{ .Values.db.cluster.primaryUpdateStrategy | default "unsupervised" }}
+
+  {{- if .Values.db.backup.enabled }}
+  # Plugin Configuration (barman-cloud sidecar)
+  plugins:
+    - name: {{ .Values.db.backup.pluginName | default "barman-cloud.cloudnative-pg.io" }}
+      parameters:
+        barmanObjectName: {{ include "supabase.cnpg.objectStore" . }}
+  {{- end }}
+
+  # Resources
+  resources:
+    {{- toYaml .Values.db.cluster.resources | nindent 4 }}
+
+{{- end }}

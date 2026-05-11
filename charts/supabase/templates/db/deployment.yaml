@@ -1,4 +1,4 @@
-{{- if .Values.db.enabled -}}
+{{- if and .Values.db.enabled .Values.db.enableLegacy -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,8 +6,8 @@ metadata:
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.db.autoscaling.enabled }}
-  replicas: {{ .Values.db.replicaCount }}
+  {{- if not .Values.db.legacy.autoscaling.enabled }}
+  replicas: {{ .Values.db.legacy.replicaCount }}
   {{- end }}
   strategy:
     type: Recreate
@@ -16,7 +16,7 @@ spec:
       {{- include "supabase.db.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.db.podAnnotations }}
+      {{- with .Values.db.legacy.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -29,7 +29,7 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "supabase.db.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.db.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.db.legacy.podSecurityContext | nindent 8 }}
       initContainers:
         - name: init-db
           image: "{{ .Values.db.image.repository }}:{{ .Values.db.image.tag | default .Chart.AppVersion }}"
@@ -46,6 +46,11 @@ spec:
 
               echo "Copying user-defined migration scripts..."
               cp /custom-migrations/* /initdb.d/migrations/ || echo "Skip migrations"
+
+              echo "Appending replication line to pg_hba.conf..."
+              cp /etc/postgresql/pg_hba.conf /pg-hba/pg_hba.conf
+              echo "host  replication  {{ .Values.db.legacy.secret.db.username }}  10.42.0.0/16  scram-sha-256" >> /pg-hba/pg_hba.conf
+
               echo "Initialization scripts are ready"
           volumeMounts:
             - mountPath: /custom-init-scripts
@@ -54,10 +59,12 @@ spec:
               name: custom-migrations
             - mountPath: /initdb.d
               name: initdb-scripts-data
+            - mountPath: /pg-hba
+              name: pg-hba-config
       containers:
         - name: {{ include "supabase.db.name" $ }}
           securityContext:
-            {{- toYaml .Values.db.securityContext | nindent 12 }}
+            {{- toYaml .Values.db.legacy.securityContext | nindent 12 }}
           image: "{{ .Values.db.image.repository }}:{{ .Values.db.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.db.image.pullPolicy }}
           env:
@@ -115,11 +122,11 @@ spec:
                   name: {{ include "supabase.secret.db" . }}
                   key: database
                   {{- end }}
-          {{- with .Values.db.livenessProbe }}
+          {{- with .Values.db.legacy.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.db.readinessProbe }}
+          {{- with .Values.db.legacy.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -130,15 +137,18 @@ spec:
           volumeMounts:
             - mountPath: /docker-entrypoint-initdb.d
               name: initdb-scripts-data
-            {{- with .Values.db.volumeMounts }}
+            {{- with .Values.db.legacy.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
+            - mountPath: /etc/postgresql/pg_hba.conf
+              name: pg-hba-config
+              subPath: pg_hba.conf
             {{- if .Values.db.persistence.enabled }}
             - mountPath: /var/lib/postgresql/data
               name: postgres-volume
               subPath: postgres-data
             {{- end }}
-          {{- with .Values.db.resources }}
+          {{- with .Values.db.legacy.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -149,10 +159,13 @@ spec:
         - name: custom-init-scripts
           configMap:
             name: {{ include "supabase.db.fullname" . }}-initdb
+        - name: pg-hba-config
+          emptyDir:
+            medium: ""
         - name: custom-migrations
           configMap:
             name: {{ include "supabase.db.fullname" . }}-migrations
-        {{- with .Values.db.volumes }}
+        {{- with .Values.db.legacy.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
         {{- if .Values.db.persistence.enabled }}

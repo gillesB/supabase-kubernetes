@@ -1,4 +1,4 @@
-{{- if .Values.db.enabled -}}
+{{- if and .Values.db.enabled .Values.db.enableLegacy -}}
 {{- if .Values.db.persistence.enabled -}}
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -6,13 +6,13 @@ metadata:
   name: {{ include "supabase.db.fullname" . }}-pvc
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
-  {{- with .Values.db.persistence.annotations }}
+  {{- with .Values.db.legacy.persistence.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if .Values.db.persistence.storageClassName }}
-  storageClassName: {{ .Values.db.persistence.storageClassName }}
+  {{- if .Values.db.legacy.persistence.storageClassName }}
+  storageClassName: {{ .Values.db.legacy.persistence.storageClassName }}
   {{- end }}
   accessModes:
   {{- range .Values.db.persistence.accessModes }}

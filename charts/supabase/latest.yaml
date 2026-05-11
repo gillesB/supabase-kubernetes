@@ -1,0 +1,38 @@
+# functions image is provided by us
+functions:
+  image:
+    tag: latest
+# migrations image is provided by us
+migrations:
+  image:
+    tag: latest
+kong:
+  image:
+    tag: 2.8.1
+db:
+  image:
+    tag: 17.4.1.074
+storage:
+  image:
+    tag: v1.25.7
+analytics:
+  image:
+    tag: 1.14.2
+realtime:
+  image:
+    tag: v2.34.47
+auth:
+  image:
+    tag: v2.177.0
+rest:
+  image:
+    tag: v12.2.12
+meta:
+  image:
+    tag: v0.91.0
+studio:
+  image:
+    tag: 2025.06.30-sha-6f5982d
+imgproxy:
+  image:
+    tag: v3.8.0

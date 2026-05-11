@@ -38,7 +38,7 @@ spec:
           env:
             - name: DB_HOST
               {{- if .Values.db.enabled }}
-              value: {{ include "supabase.db.fullname" . | quote }}
+              value: {{ include "supabase.db.host" . | quote }}
               {{- else }}
               value: {{ .Values.auth.environment.DB_HOST | quote }}
               {{- end }}
@@ -100,7 +100,7 @@ spec:
             {{- end }}
             {{- if .Values.db.enabled }}
             - name: DB_HOST
-              value: {{ include "supabase.db.fullname" . }}
+              value: {{ include "supabase.db.host" . }}
             {{- end }}
             {{- if .Values.rest.enabled }}
             - name: POSTGREST_URL
@@ -137,7 +137,7 @@ spec:
                   key: database
                   {{- end }}
             - name: DATABASE_URL
-              value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_ENC)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)
+              value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_ENC)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=storage,public&sslmode=$(DB_SSL)
             - name: PGRST_JWT_SECRET
               valueFrom:
                 secretKeyRef:

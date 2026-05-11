@@ -1,0 +1,11 @@
+{{- if .Values.db.enableLegacy -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "supabase.initdb.configmap" . }}-legacy
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+data:
+  20-rtls_schema_2026_05_01.sql: |
+{{ .Files.Get "initdb-sql/20-rtls_schema_2026_05_01.sql" | indent 4 }}
+{{- end }}

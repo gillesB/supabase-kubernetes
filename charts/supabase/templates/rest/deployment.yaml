@@ -41,7 +41,7 @@ spec:
             {{- end }}
             {{- if .Values.db.enabled }}
             - name: DB_HOST
-              value: {{ include "supabase.db.fullname" . }}
+              value: {{ include "supabase.db.host" . }}
             {{- end }}
             - name: DB_PASSWORD
               valueFrom:
